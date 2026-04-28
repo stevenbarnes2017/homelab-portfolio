@@ -1,3 +1,3 @@
 #Documentation
-This repository contains documentation for my homelab and SundayPickems platform.
+This repository contains documentation for my homelab and SundayPickems platform. 
  

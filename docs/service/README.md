@@ -218,4 +218,6 @@ This service demonstrates:
 
 ---
 
+### Summmary
+Sunday Pickem's is a production-style, multi-tenant NFL pick’em platform built to simulate real-world SRE and platform engineering practices, including Kubernetes-based deployment, observability, and automated background processing.
 

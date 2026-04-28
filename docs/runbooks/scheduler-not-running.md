@@ -23,30 +23,27 @@ logs only show the startup message:
 -No emails or updates triggered
 
 ## 🔍 Troubleshooting Steps
-1. Verify Pod is Running
-kubectl get pods -l app=football-scheduler
+# 1. Verify Pod is Running
+  kubectl get pods -l app=football-scheduler
 
-Expected:
-
-Pod is in Running state
-2. Check Logs
-kubectl logs -l app=football-scheduler
-
-If only startup message appears:
-
-Scheduler may be running but idle
-Jobs may not be triggering yet
-3. Confirm Correct Image is Deployed
-kubectl describe pod -l app=football-scheduler | grep -E "Image:|Image ID:"
+  Expected:
+    - Pod is in Running state
+# 2. Check Logs
+  kubectl logs -l app=football-scheduler
+  If only startup message appears:
+  - Scheduler may be running but idle
+  - Jobs may not be triggering yet
+# 3. Confirm Correct Image is Deployed
+  kubectl describe pod -l app=football-scheduler | grep -E "Image:|Image ID:"
 
 ⚠️ Common Issue:
-
 Deployment updated but still using old image
 latest tag confusion
-4. Force Deployment Restart
+
+# 4. Force Deployment Restart
 kubectl rollout restart deployment football-scheduler
 kubectl rollout status deployment football-scheduler
-5. Verify Environment Variables
+# 5. Verify Environment Variables
 kubectl describe pod -l app=football-scheduler
 
 Check:
@@ -54,7 +51,7 @@ Check:
 DISABLE_APSCHEDULER=0
 Database connection string present
 Email credentials injected
-6. Check Job Timing
+# 6. Check Job Timing
 
 ⚠️ Important behavior:
 

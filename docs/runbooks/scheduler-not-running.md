@@ -22,7 +22,7 @@ logs only show the startup message:
 -No scheduled jobs executing
 -No emails or updates triggered
 
-🔍 Troubleshooting Steps
+##🔍 Troubleshooting Steps
 1. Verify Pod is Running
 kubectl get pods -l app=football-scheduler
 

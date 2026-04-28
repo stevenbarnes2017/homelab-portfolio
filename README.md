@@ -137,6 +137,7 @@ Secrets are managed using HashiCorp Vault and injected into Kubernetes workloads
 
 - Kubernetes GitOps Repo:
   https://github.com/stevenbarnes2017/k3s-proxmox-gitops
+  https://github.com/stevenbarnes2017/NFL_Football_Pool
 
 ---
 

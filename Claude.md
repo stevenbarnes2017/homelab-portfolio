@@ -117,7 +117,11 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
 - [ ] 🛡️ **Intrusion detection (added 2026-06-09):** Falco DaemonSet + CrowdSec
   - Integrates with kube-prometheus-stack / Alertmanager
   - Defer Suricata/Zeek (noise/complexity); pairs well with VLAN project
-- [ ] Auto dns from proxmox to piehole so lab is using hostname instead of remembering IP's for most VM's
+- [ ] 🔄 **Ansible inventory unification (added 2026-06-10):**
+  - Expand Ansible coverage beyond k3s — all VMs/LXCs (dns01, footballpooldb01, WireGuard, etc.) in one inventory
+  - Proxmox dynamic inventory plugin (`community.general.proxmox`) as source of truth — auto-discover VMs/LXCs instead of static hosts.ini
+  - Auto-sync Pi-hole local DNS records from inventory (templated pihole.toml hosts block or API) — every host gets a lab.local name automatically
+  - Outcome: one inventory file, everything in DNS, nothing managed by hand
 ### Monitoring / unresolved
 - [ ] NFS instability on `steven` (nfsd deadlock under backup load) — soft mounts added, not fully resolved
 - [ ] Pi-hole DNS config review

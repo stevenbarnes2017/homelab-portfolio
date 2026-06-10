@@ -49,6 +49,7 @@
 **Other deployed apps**
 - Immich (900Gi Longhorn PVC on wk-01 dedicated SATA, Google Photos migration complete)
 - Vaultwarden (complete)
+- Hommar
 
 ---
 
@@ -58,7 +59,7 @@ Flask / SQLAlchemy / PostgreSQL · k3s via ArgoCD · GitHub Actions CI/CD · Clo
 
 ### ⚠️ Critical — before NFL preseason (August)
 - [ ] **Past-week guard on `dispatch_due_reminders`** — prevent stale ReminderJob rows flushing on restart (reminder spam incident, 2026-06-09)
-- [ ] **End-to-end mock season test**
+
 
 ### Backlog
 - [ ] Week dropdown: limit to current + past weeks only (currently shows future weeks)
@@ -79,7 +80,7 @@ Flask / SQLAlchemy / PostgreSQL · k3s via ArgoCD · GitHub Actions CI/CD · Clo
 Flask/gunicorn · migrated Render → homelab k3s (2026-06-09, saves ~$14/mo) · `celestial` namespace
 
 ### Cleanup
-- [ ] Cancel Render subscription 💸
+- [x] Cancel Render subscription 💸
 - [ ] Commit `GROQ_API_KEY` to GitOps deployment manifest
 - [ ] GitHub Actions CI/CD
 
@@ -132,9 +133,9 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
 
 ---
 
-## 💼 Portfolio / Job Search
+## 💼 Portfolio
 
-- [ ] Credential scrub on `k3s-proxmox-gitops` → make public
+
 - [ ] GitHub documentation polish
 - [ ] LinkedIn updates
 - [ ] Portfolio site

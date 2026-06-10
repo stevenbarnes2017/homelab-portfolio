@@ -117,7 +117,7 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
 - [ ] 🛡️ **Intrusion detection (added 2026-06-09):** Falco DaemonSet + CrowdSec
   - Integrates with kube-prometheus-stack / Alertmanager
   - Defer Suricata/Zeek (noise/complexity); pairs well with VLAN project
-
+- [ ] Auto dns from proxmox to piehole so lab is using hostname instead of remembering IP's for most VM's
 ### Monitoring / unresolved
 - [ ] NFS instability on `steven` (nfsd deadlock under backup load) — soft mounts added, not fully resolved
 - [ ] Pi-hole DNS config review

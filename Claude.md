@@ -109,7 +109,7 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
 ## 🏠 Homelab Roadmap
 
 ### Active / near-term
-- [ ] ArgoCD app-of-apps review — specific issues unknown, needs investigation
+- [x] ArgoCD app-of-apps review — specific issues unknown, needs investigation
 - [ ] 🎵 **Music server stack (added 2026-06-09):** Navidrome + Lidarr + slskd on k3s via ArgoCD
   - First decision: Longhorn vs NFS volume for music library
   - beets for existing collection cleanup

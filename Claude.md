@@ -1,6 +1,6 @@
 # CLAUDE.md — Homelab & Projects: Current State + Roadmap
 
-> **Last updated:** 2026-06-10
+> **Last updated:** 2026-06-20
 > Living document. Update after each working session — add, check off, or remove items as priorities shift.
 
 ---

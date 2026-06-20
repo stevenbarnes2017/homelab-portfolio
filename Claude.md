@@ -94,9 +94,9 @@ Flask/gunicorn · migrated Render → homelab k3s (2026-06-09, saves ~$14/mo) ·
 React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complete · saved trips + wishlist live · wife is a user
 
 ### Next
-- [ ] **Migrate FastAPI backend to homelab k3s** — Celestial pattern:
+- [X] **Migrate FastAPI backend to homelab k3s** — Celestial pattern:
   Dockerfile → build/push Harbor → namespace + secrets → ArgoCD manifests → Cloudflare tunnel route → fix hardcoded frontend API URL
-- [ ] Dockerfile (doesn't exist yet)
+- [X] Dockerfile (doesn't exist yet)
 
 ### Future features
 - [ ] Road trip mode (multi-stop map + Google Maps waypoints)
@@ -124,10 +124,10 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
   - Outcome: one inventory file, everything in DNS, nothing managed by hand
 ### Monitoring / unresolved
 - [ ] NFS instability on `steven` (nfsd deadlock under backup load) — soft mounts added, not fully resolved
-- [ ] Pi-hole DNS config review
+- [X] Pi-hole DNS config review
 
 ### Hardware
-- [ ] lab2 RAM: 4× Micron 8GB PC4-19200T-E ECC UDIMM (MTA9ASF1G72AZ-2G3) → 32GB to 64GB
+- [X] lab2 RAM: ATP 8GB DDR4-2400 ECC RDIMMs → 32GB to 64GB
 - [ ] lab2 storage: Samsung SM961 1TB M.2 NVMe PCIe Gen 3
 
 ### Learning projects

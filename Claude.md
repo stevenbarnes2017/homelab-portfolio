@@ -93,9 +93,10 @@ Flask/gunicorn · migrated Render → homelab k3s (2026-06-09, saves ~$14/mo) ·
 React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complete · saved trips + wishlist live · wife is a user
 
 ### Next
-- [ ] **Migrate FastAPI backend to homelab k3s** — Celestial pattern:
+- [X] **Migrate FastAPI backend to homelab k3s** — Celestial pattern:
   Dockerfile → build/push Harbor → namespace + secrets → ArgoCD manifests → Cloudflare tunnel route → fix hardcoded frontend API URL
-- [ ] Dockerfile (doesn't exist yet)
+- [X] Dockerfile (doesn't exist yet)
+- [ ] Guest mode feature
 
 ### Future features
 - [ ] Road trip mode (multi-stop map + Google Maps waypoints)
@@ -108,7 +109,7 @@ React/Vite PWA (Vercel) · FastAPI backend (still on Render) · JWT auth complet
 ## 🏠 Homelab Roadmap
 
 ### Active / near-term
-- [ ] ArgoCD app-of-apps review — specific issues unknown, needs investigation
+- [X] ArgoCD app-of-apps review — specific issues unknown, needs investigation
 - [ ] 🎵 **Music server stack (added 2026-06-09):** Navidrome + Lidarr + slskd on k3s via ArgoCD
   - First decision: Longhorn vs NFS volume for music library
   - beets for existing collection cleanup

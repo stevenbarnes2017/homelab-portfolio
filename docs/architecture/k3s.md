@@ -30,7 +30,7 @@ The cluster supports the Sunday Pickem's application along with persistent stora
 ### Key Characteristics
 
 - High availability control plane
-- Internal-only cluster (no external exposure)
+- Private node and service networks with selected applications published through Cloudflare Tunnel
 - Lightweight Kubernetes (k3s)
 
 ---
@@ -42,6 +42,18 @@ The cluster supports the Sunday Pickem's application along with persistent stora
 - **Traefik**
   - Handles HTTP/HTTPS routing
   - Ingress class: `traefik`
+
+Traefik is the only discovered Kubernetes `LoadBalancer` service and is available on the LAN at `10.0.0.119` over ports 80 and 443. Public application traffic does not depend on direct Xfinity TCP 80/443 forwarding.
+
+### Public Application Path
+
+Selected applications use this verified path:
+
+```text
+Internet -> Cloudflare -> Cloudflare Tunnel -> ClusterIP service -> application pod
+```
+
+`cloudflared` runs as a two-replica Deployment in the `immich` namespace. Public route details are maintained in `docs/security/cloudflare-ingress.md`.
 
 ---
 
@@ -181,6 +193,13 @@ The cluster supports the Sunday Pickem's application along with persistent stora
 - ArgoCD (GitOps)
 - Prometheus exporters (node, kube-state, etc.)
 
+### Hermes / Local LLM
+
+- Open WebUI runs in Kubernetes as the Hermes user interface.
+- `hermes.barnesfamily-pics.online` reaches Open WebUI through Cloudflare Tunnel and `open-webui.ai.svc.cluster.local:8080`.
+- Ollama runs separately on a Windows home PC at the observed LAN address `10.0.0.41:11434` to use an NVIDIA RTX 2070 SUPER.
+- Open WebUI communicates with Ollama across the LAN.
+
 ---
 
 ## ⚠️ Known Gaps / Improvements
@@ -211,8 +230,9 @@ The cluster supports the Sunday Pickem's application along with persistent stora
 
 ### Why Internal-Only Cluster?
 
-- Reduces attack surface
-- Simplifies networking and security
+The cluster nodes and service networks remain private, while only explicitly routed applications are published through Cloudflare Tunnel. This distinction preserves a private infrastructure plane without describing the application plane as entirely unexposed.
+
+Administrative applications including ArgoCD, Longhorn, Vault, Harbor, Prometheus, Grafana, and Alertmanager should be classified as management-plane services during future network segmentation.
 
 ---
 

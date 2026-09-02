@@ -1,4 +1,3 @@
-@'
 # Security Findings
 
 This document tracks security observations discovered during the Home Lab Security & Operations project.
@@ -148,27 +147,77 @@ NodePort services listen through Kubernetes nodes and can unintentionally increa
 - Identify the backing deployment/pods.
 - Verify reachability.
 - Remove the service if it is obsolete.
-'@ | Set-Content -Encoding utf8 .\docs\security\findings.md
+
+---
 
 ## SEC-005 — Cloudflare tunnel pods are not network-isolated.
+
+**Status:** Open
+**Severity:** Security Hardening Observation
+
 cloudflared intentionally provides Internet-origin access to six applications, but the pods are not currently restricted to only those destination services. A compromise of a tunnel pod could therefore provide broader east/west access inside the cluster.
 
 The Cloudflare tunnel pods do not appear over-privileged in Kubernetes RBAC, but they are not network-isolated and can likely initiate connections broadly within the cluster.
 
-## SEC-006 — Hermes Cloudflare Access policy is authentication-method based rather than identity-restricted.
+## SEC-006 — Review Internet exposure controls for Hermes
 
 **Status:** Open  
-**Priority:** Security Hardening
+**Severity:** Review Required
 
-Hermes is protected by Cloudflare Access.
+Hermes/Open WebUI is verified as Internet-accessible through Cloudflare Tunnel:
 
-Current Allow policy selects the Cloudflare login method rather than explicitly authorized user identities.
+`hermes.barnesfamily-pics.online -> open-webui.ai.svc.cluster.local:8080`
+
+The previously documented statement that Hermes is protected by a specific Cloudflare Access policy is not retained as verified current state. The effective Access policy and identity restrictions require validation.
 
 ### Planned Review
 
-Restrict Hermes Access to specifically approved identities.
+- Decide whether Hermes should remain publicly accessible, be protected by Cloudflare Access with explicitly authorized identities, or become VPN-only.
+- Validate the effective Cloudflare Access policy before treating it as a compensating control.
 
 This is particularly important before Hermes receives any privileged automation capability.
+
+---
+
+## SEC-007 — Ollama LAN listener scope
+
+**Status:** Open
+**Severity:** Security Hardening Observation
+
+The Ollama backend on the Windows home PC was observed listening on `0.0.0.0:11434` at LAN address `10.0.0.41`. Open WebUI requires access to this API across the LAN, but the wildcard bind may permit access from other reachable systems.
+
+### Planned Review
+
+- Identify every system that requires the Ollama API.
+- During future segmentation and firewall design, restrict access to required consumers, particularly Open WebUI.
+- Do not classify the listener as Internet-accessible without external reachability evidence.
+
+---
+
+## SEC-008 — Cloudflare tunnel availability and image control
+
+**Status:** Open
+**Severity:** Operational / Supply-Chain Hardening Observation
+
+The `cloudflared` deployment recovered automatically from intermittent QUIC connectivity failures. This is currently an availability and monitoring observation, not a confirmed security vulnerability.
+
+The following version-management observations were also verified:
+
+- Running version observed: `2026.8.2`
+- Version recommended by logs: `2026.8.3`
+- Deployment image reference: `cloudflare/cloudflared:latest`
+
+### Planned Review
+
+- Monitor and alert on sustained tunnel connectivity failures.
+- Evaluate the recommended upgrade through the normal change process.
+- Pin `cloudflared` to a controlled version instead of a floating tag.
+
+---
+
+## Network Segmentation Scope
+
+Treat ArgoCD, Longhorn, Vault, Harbor, Prometheus, Grafana, and Alertmanager as management-plane services in future segmentation design. This classification is planning guidance; no network or firewall changes were made as part of this assessment.
 
 ---
 
@@ -197,3 +246,4 @@ Workflow:
 6. Implement
 7. Validate
 8. Update documentation
+

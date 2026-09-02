@@ -1,4 +1,3 @@
-@'
 # Home Lab Infrastructure Inventory
 
 ## Purpose
@@ -7,7 +6,7 @@ This document records the currently verified home lab infrastructure.
 
 The goal is to maintain a discoverable, version-controlled source of truth rather than relying entirely on manually maintained inventories.
 
-Last verified: 2026-08-23
+Last verified: 2026-09-01
 
 ---
 
@@ -22,11 +21,13 @@ Primary LAN:
 
 Known configured inbound IPv4 port forwards:
 
-| Protocol | Port | Destination | Purpose |
-|---|---:|---|---|
-| UDP | 51820 | 10.0.0.18 | WireGuard VPN |
+| Protocol | Port | Destination | Purpose | Classification |
+|---|---:|---|---|---|
+| UDP | 51820 | 10.0.0.18 | WireGuard VPN | REQUIRED |
 
 No other manual port-forwarding rules were identified in the Xfinity configuration.
+
+In particular, public HTTP/HTTPS applications do not depend on manual TCP 80/443 forwarding. They use outbound Cloudflare Tunnel connections documented in `docs/security/cloudflare-ingress.md`.
 
 IPv6 is enabled on multiple systems. Actual Internet reachability over IPv6 has not yet been externally verified.
 
@@ -109,6 +110,26 @@ Further DNS configuration will be documented separately.
 
 ---
 
+## Local AI Backend
+
+The Hermes user interface runs as Open WebUI in Kubernetes, while its Ollama model backend runs separately on a Windows home PC to use the system's NVIDIA RTX 2070 SUPER GPU and VRAM.
+
+Verified Ollama network state:
+
+- Host platform: Windows home PC
+- Observed LAN IPv4: `10.0.0.41`
+- Listener: `0.0.0.0:11434`
+- Consumer: Open WebUI in the Kubernetes cluster, communicating across the LAN
+
+Installed models observed:
+
+- `interstellarninja/hermes-3-llama-3.1-8b-tools:latest`
+- `hermes3:8b`
+
+No credentials or model-service tokens are recorded in this inventory.
+
+---
+
 ## Automation
 
 Primary automation controller:
@@ -140,4 +161,3 @@ Long-term inventory sources should include:
 - future cloud APIs
 
 This repository documents verified infrastructure state but should increasingly be generated or validated from live infrastructure APIs.
-'@ | Set-Content -Encoding utf8 .\docs\inventory\infrastructure.md

@@ -13,6 +13,8 @@ graph TB
                 WK3[k3s-wk-03<br/>10.0.0.125<br/>VMID 112]
             end
             LB[k3s-lb-01<br/>10.0.0.119 MetalLB VIP<br/>VMID 119]
+            CLOUDFLARED[cloudflared x2<br/>namespace: immich]
+            CLUSTERIP[Public application<br/>ClusterIP services]
         end
 
         subgraph "Proxmox Host: steven (10.0.0.237)"
@@ -21,6 +23,9 @@ graph TB
         end
 
         PIHOLE[Pi-hole DNS<br/>*.lab.local]
+        WG[WireGuard<br/>10.0.0.18:51820/UDP]
+        OLLAMA[Windows Home PC<br/>10.0.0.41:11434<br/>Ollama / RTX 2070 SUPER]
+        CF[Cloudflare Edge<br/>Tunnel]
         INTERNET[Internet]
     end
 
@@ -28,7 +33,11 @@ graph TB
     CP1 & CP2 & CP3 --> LB
     WK1 & WK2 & WK3 --> LB
     LB --> PIHOLE
-    LB --> INTERNET
+    INTERNET --> CF
+    CF --> CLOUDFLARED
+    CLOUDFLARED --> CLUSTERIP
+    INTERNET -->|UDP 51820 only| WG
+    CLUSTERIP -. Open WebUI to Ollama .-> OLLAMA
     DB -.-> WK2
     ANSIBLE -.-> CP1
     ANSIBLE -.-> CP2
@@ -46,7 +55,7 @@ graph TB
     class CP1,CP2,CP3 controlPlane
     class WK1,WK2,WK3 worker
     class LB,DB,ANSIBLE infrastructure
-    class PIHOLE,INTERNET external
+    class PIHOLE,INTERNET,CF external
 ```
 
 ## Network Details
@@ -98,7 +107,11 @@ All services accessible through Traefik ingress at 10.0.0.119:
 
 ### Network Flow
 
-1. **External Access:** Internet → MetalLB VIP (10.0.0.119) → Traefik → Services
-2. **Internal DNS:** Pi-hole resolves *.lab.local → 10.0.0.119
-3. **Database Connection:** k8s pods → 10.0.0.x (FooballPoolDB01 on steven)
-4. **Automation:** ansible-control → SSH → all k3s nodes
+1. **Verified public web access:** Internet → Cloudflare → Cloudflare Tunnel → Kubernetes ClusterIP service → application pod
+2. **Verified VPN access:** Internet → Xfinity UDP 51820 forwarding → WireGuard at 10.0.0.18
+3. **Internal ingress:** Pi-hole resolves `*.lab.local` → Traefik at 10.0.0.119 → services
+4. **Hermes model traffic:** Open WebUI in Kubernetes → Ollama on Windows home PC at 10.0.0.41:11434
+5. **Database connection:** k8s pods → 10.0.0.x (FooballPoolDB01)
+6. **Automation:** ansible-control → SSH → all k3s nodes
+
+There are no verified manual TCP 80/443 port forwards. The Traefik LoadBalancer address is a LAN ingress path, not the verified public HTTP/HTTPS edge.

@@ -1,11 +1,10 @@
-@'
 # Kubernetes / K3s Inventory
 
 ## Overview
 
 The home lab runs a highly available K3s cluster hosted on Proxmox VMs.
 
-Last verified: 2026-08-23
+Last verified: 2026-09-01
 
 K3s version:
 
@@ -77,6 +76,8 @@ Current Kubernetes service representation:
 `80:32666/TCP`
 `443:31711/TCP`
 
+Traefik was the only Kubernetes `LoadBalancer` service discovered. Application services behind the ingress and Cloudflare Tunnel paths are predominantly `ClusterIP` services.
+
 ---
 
 ## Non-ClusterIP Services
@@ -120,11 +121,41 @@ The `nginx-test` NodePort requires review to determine whether it is still neede
 - vault.lab.local
 - vaultwarden.lab.local
 
-### Non-lab.local
+### Public hostname also represented by Kubernetes ingress
 
 - hermes.barnesfamily-pics.online
 
-The actual Internet reachability of these ingress hosts has not yet been fully verified.
+This hostname is verified as Internet-accessible through Cloudflare Tunnel to the Open WebUI `ClusterIP` service. Its public traffic does not depend on direct TCP 80/443 forwarding to Traefik.
+
+---
+
+## Cloudflare Tunnel
+
+Verified deployment:
+
+- Namespace: `immich`
+- Deployment: `cloudflared`
+- Replicas: `2`
+- Authentication reference: Kubernetes Secret `cloudflare-tunnel-token`
+- Tunnel ID: `ffd6a53d-120a-41e7-b9df-59458f534b17`
+- Configuration management: remote Cloudflare configuration
+- Ingress termination: final `http_status:404` catch-all
+
+The detailed public hostname-to-service map is maintained in `docs/security/cloudflare-ingress.md`.
+
+---
+
+## Management-Plane Services
+
+The following administrative applications should be treated as management-plane services when network segmentation and access policy are designed:
+
+- ArgoCD
+- Longhorn
+- Vault
+- Harbor
+- Prometheus
+- Grafana
+- Alertmanager
 
 ---
 
@@ -163,4 +194,3 @@ Example prefix observed:
 External inbound IPv6 reachability has not yet been verified.
 
 This must be included in the attack-surface review.
-'@ | Set-Content -Encoding utf8 .\docs\inventory\kubernetes.md

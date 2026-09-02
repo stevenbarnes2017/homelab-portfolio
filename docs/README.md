@@ -124,11 +124,12 @@ homelab-portfolio/
 ```
 Internet
     │
-    ▼
-Xfinity Gateway (NAT · Port 51820 UDP forwarded)
+    ├── Cloudflare → Cloudflare Tunnel → selected Kubernetes ClusterIP services
     │
-    ▼
-Homelab Network (10.0.0.0/24)
+    └── Xfinity Gateway → UDP 51820 → WireGuard (10.0.0.18)
+                           │
+                           ▼
+                Homelab Network (10.0.0.0/24)
     │
     ├── Proxmox Node: steven
     │     └── Primary workstation node

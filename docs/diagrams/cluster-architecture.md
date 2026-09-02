@@ -4,8 +4,11 @@
 graph TB
     subgraph "Ingress Layer"
         INTERNET[Internet/Users]
+        CLOUDFLARE[Cloudflare Edge<br/>Tunnel]
+        CLOUDFLARED[cloudflared x2<br/>immich namespace]
+        PUBLICSVC[Public application<br/>ClusterIP services]
         METALLB[MetalLB<br/>10.0.0.119]
-        TRAEFIK[Traefik Ingress<br/>LoadBalancer]
+        TRAEFIK[Traefik LAN Ingress<br/>LoadBalancer 80/443]
     end
 
     subgraph "Control Plane - HA Configuration"
@@ -44,15 +47,22 @@ graph TB
         FOOTBALL[Sunday Pickems<br/>Flask App]
         IMMICH[Immich<br/>Photos]
         SCHEDULER[Football Scheduler<br/>Background Jobs]
+        OPENWEBUI[Hermes / Open WebUI]
     end
 
     subgraph "External Dependencies"
         DB[(PostgreSQL<br/>on steven host)]
         ANSIBLE[Ansible Controller<br/>on steven host]
+        OLLAMA[Ollama<br/>Windows PC 10.0.0.41:11434]
     end
 
     %% Ingress Flow
-    INTERNET --> METALLB
+    INTERNET --> CLOUDFLARE
+    CLOUDFLARE --> CLOUDFLARED
+    CLOUDFLARED --> PUBLICSVC
+    PUBLICSVC --> FOOTBALL
+    PUBLICSVC --> IMMICH
+    PUBLICSVC --> OPENWEBUI
     METALLB --> TRAEFIK
     TRAEFIK --> FOOTBALL
     TRAEFIK --> IMMICH
@@ -94,6 +104,7 @@ graph TB
     FOOTBALL --> DB
     ANSIBLE -.manages.-> CP1 & CP2 & CP3
     ANSIBLE -.manages.-> WK1 & WK2 & WK3
+    OPENWEBUI --> OLLAMA
 
     %% Styling
     classDef controlPlane fill:#e1f5ff,stroke:#01579b,stroke-width:2px
@@ -110,9 +121,9 @@ graph TB
     class LONGHORN,EXTERNAL storage
     class PROM,GRAFANA,LOKI,ALERT observability
     class ARGOCD,HARBOR,VAULT,CERT platform
-    class FOOTBALL,IMMICH,SCHEDULER application
-    class DB,ANSIBLE external
-    class METALLB,TRAEFIK,INTERNET ingress
+    class FOOTBALL,IMMICH,SCHEDULER,OPENWEBUI application
+    class DB,ANSIBLE,OLLAMA external
+    class METALLB,TRAEFIK,INTERNET,CLOUDFLARE,CLOUDFLARED,PUBLICSVC ingress
 ```
 
 ## Architecture Highlights
@@ -160,8 +171,10 @@ graph TB
 
 1. **User Request Flow:**
    ```
-   User → Internet → MetalLB (10.0.0.119) → Traefik → Service Pod
+   User → Internet → Cloudflare → Cloudflare Tunnel → ClusterIP Service → Application Pod
    ```
+
+   There are no verified manual TCP 80/443 port forwards. MetalLB and Traefik provide LAN ingress for internal routes; they are not the verified public web edge.
 
 2. **Deployment Flow:**
    ```
@@ -185,7 +198,9 @@ graph TB
 - **Pod Network:** 10.42.0.0/16 (CNI managed)
 - **Service Network:** 10.43.0.0/16 (ClusterIP)
 - **Node Network:** 10.0.0.0/24 (physical)
-- **External Access:** Via MetalLB VIP only
+- **Public web access:** Cloudflare Tunnel to selected ClusterIP services
+- **LAN ingress:** Traefik via MetalLB VIP `10.0.0.119`
+- **Management plane:** ArgoCD, Longhorn, Vault, Harbor, Prometheus, Grafana, and Alertmanager should be treated as management-plane services in future segmentation
 
 ### Storage Tiers
 

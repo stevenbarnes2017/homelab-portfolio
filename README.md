@@ -12,7 +12,8 @@ It demonstrates real-world infrastructure, observability, and automation practic
 
 - **Platform**: Proxmox (virtualization)
 - **Kubernetes**: k3s (HA control plane)
-- **Ingress**: Traefik (lab.local domain)
+- **LAN ingress**: Traefik (lab.local domain, `10.0.0.119`)
+- **Public application access**: Cloudflare Tunnel to selected Kubernetes ClusterIP services
 - **Storage**: Longhorn (persistent volumes)
 - **CI/CD**: GitHub Actions → Harbor → Kubernetes
 - **DNS**: Pi-hole (internal resolution)
@@ -58,7 +59,7 @@ Secrets are managed using HashiCorp Vault and injected into Kubernetes workloads
 - 3 worker nodes
 - Load-balanced API server
 - GitOps-style deployments
-- Internal-only cluster networking
+- Private cluster networking with selected applications published through Cloudflare Tunnel
 
 ---
 

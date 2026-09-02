@@ -64,7 +64,7 @@ Service ClusterIP addresses use:
 
 K3s kube-router NetworkPolicy enforcement is active. `KUBE-ROUTER-*` and `KUBE-POD-FW-*` iptables chains were verified.
 
-Current policy coverage is limited primarily to ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy and therefore remain default-allow for east-west traffic.
+Current policy coverage includes ArgoCD, Immich Redis, and the Celestial segmentation pilot. Most namespaces still have no NetworkPolicy and therefore remain default-allow for east-west traffic.
 
 Verified policy observations:
 
@@ -73,7 +73,48 @@ Verified policy observations:
 - Several ArgoCD policies use `namespaceSelector: {}`, allowing ingress from any namespace.
 - The policy selecting `argocd-server` contains `ingress: - {}`, which is effectively unrestricted ingress to the selected pod.
 
-No cluster-wide or namespace-wide default-deny policy has been implemented. This inventory records discovery state only.
+No cluster-wide blanket default-deny policy has been implemented. Celestial is the first workload with a verified namespace-level default-deny and explicit-allow model.
+
+### Celestial NetworkPolicy Pilot
+
+The `celestial` namespace has NetworkPolicy enforcement through four policies stored in `kubernetes/celestial/networkpolicy.yaml` in the infrastructure Git repository:
+
+- `celestial-default-deny-ingress`
+- `celestial-allow-ingress`
+- `celestial-default-deny-egress`
+- `celestial-allow-required-egress`
+
+The existing `argocd-app.yaml`, `deployment.yaml`, `namespace.yaml`, and `service-ingress.yaml` manifests remain unchanged alongside the policy manifest. ArgoCD automatically synchronized the NetworkPolicy after it was committed to Git.
+
+Ingress is default-deny. Traffic from the Cloudflare Tunnel (`cloudflared`) pods is explicitly permitted, while an unrelated Kubernetes pod cannot directly connect to Celestial. A Traefik allowance remains for the unused `celestial.lab.local` ingress and is a cleanup candidate, not a required production path.
+
+Egress is default-deny with explicit allowances for:
+
+- CoreDNS over TCP and UDP `53`
+- PostgreSQL at `10.0.0.129:5432`
+- External HTTPS APIs over TCP `443`
+
+The generic Internet HTTPS allowance excludes private RFC1918 networks unless a destination is explicitly permitted. This limits lateral movement from a compromised Celestial workload.
+
+The verified production request path is:
+
+```text
+https://celestial-engine.vercel.app
+-> Vercel frontend
+-> https://celestial-api.sundaypickems.com
+-> Cloudflare
+-> Cloudflare Tunnel
+-> Celestial Kubernetes Service
+-> Celestial API pod
+```
+
+Validation performed:
+
+1. Kubernetes server-side dry run succeeded for all four NetworkPolicy resources.
+2. ArgoCD synchronized the policies successfully.
+3. `kubectl get networkpolicy -n celestial` confirmed all four policies were active.
+4. `curl -i https://celestial-api.sundaypickems.com/health` returned HTTP `200` with `{"engine":"Celestial Engine API v1.0","global_free_beta":true,"status":"healthy"}`.
+5. In the negative east-west test, a temporary curl pod in `default` resolved `celestial-api.celestial.svc.cluster.local` to `10.43.234.199`, but its direct connection failed with `Connection refused`; the legitimate Cloudflare path remained operational.
 
 ### Segmentation Dependencies
 

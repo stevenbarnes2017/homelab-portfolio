@@ -63,15 +63,22 @@ The verified Kubernetes network path is:
 Flannel data plane -> kube-router NetworkPolicy enforcement -> workload
 ```
 
-NetworkPolicy enforcement is active, but current policy coverage is limited primarily to ArgoCD and Immich Redis. Most namespaces have no policy and therefore remain default-allow for east-west traffic. Public-facing application workloads and sensitive management workloads currently share the cluster without meaningful namespace-level isolation.
+NetworkPolicy enforcement is active. Current coverage includes ArgoCD, Immich Redis, and the Celestial pilot, but most namespaces have no policy and therefore remain default-allow for east-west traffic. Public-facing application workloads and sensitive management workloads still share the cluster without broad namespace-level isolation.
 
-This is the discovered current state, not an implemented default-deny design. Future segmentation must account for cross-boundary dependencies before enforcement:
+Celestial is the first verified namespace-level segmentation pilot. It uses default-deny ingress and egress with explicit allowances for Cloudflare Tunnel ingress, CoreDNS, PostgreSQL at `10.0.0.129:5432`, and external HTTPS APIs. Generic Internet HTTPS access excludes RFC1918 destinations unless explicitly allowed. An unrelated pod was unable to connect directly, while this production path remained healthy:
+
+```text
+Vercel frontend -> celestial-api.sundaypickems.com -> Cloudflare -> Cloudflare Tunnel -> Celestial Service -> Celestial API pod
+```
+
+The remaining Traefik allowance for the unused `celestial.lab.local` ingress is a cleanup candidate rather than a required production path. Broader segmentation must account for cross-boundary dependencies before enforcement:
 
 - Open WebUI (`ai`) to Ollama at `10.0.0.41:11434`
 - Workloads using PostgreSQL at `10.0.0.129`
 - `cloudflared` (`immich`) to published services across namespaces
 - Prometheus cross-namespace scraping
 - DNS to CoreDNS in `kube-system`
+- Media/NFS traffic, Harbor, Longhorn, and other cross-namespace services
 
 ---
 

@@ -28,6 +28,7 @@ graph TB
         FLANNEL[Flannel Data Plane<br/>10.42.0.0/16]
         KUBEROUTER[kube-router<br/>NetworkPolicy Enforcement]
         DEFAULTALLOW[Current State<br/>Mostly Default-Allow]
+        CELESTIALPOLICY[Celestial Pilot<br/>Ingress + Egress Default-Deny<br/>Explicit Allows]
     end
 
     subgraph "Storage Layer"
@@ -91,6 +92,7 @@ graph TB
     WK1 & WK2 & WK3 --> FLANNEL
     FLANNEL --> KUBEROUTER
     KUBEROUTER --> DEFAULTALLOW
+    KUBEROUTER --> CELESTIALPOLICY
 
     %% Storage
     WK1 & WK2 & WK3 --> LONGHORN
@@ -134,7 +136,7 @@ graph TB
     class FOOTBALL,IMMICH,SCHEDULER,OPENWEBUI application
     class DB,ANSIBLE,OLLAMA external
     class METALLB,TRAEFIK,INTERNET,CLOUDFLARE,CLOUDFLARED,PUBLICSVC ingress
-    class FLANNEL,KUBEROUTER,DEFAULTALLOW network
+    class FLANNEL,KUBEROUTER,DEFAULTALLOW,CELESTIALPOLICY network
 ```
 
 ## Architecture Highlights
@@ -209,13 +211,14 @@ graph TB
 - **Pod data plane:** Flannel, using node `/24` pod CIDRs within `10.42.0.0/16`
 - **Policy enforcement:** kube-router is active; verified iptables chains include `KUBE-ROUTER-*` and `KUBE-POD-FW-*`
 - **Current policy state:** mostly default-allow because most namespaces have no NetworkPolicy
+- **Segmented pilot:** Celestial has default-deny ingress and egress with explicit allowances for Cloudflare Tunnel, CoreDNS, external PostgreSQL, and Internet HTTPS
 - **Service Network:** 10.43.0.0/16 (ClusterIP)
 - **Node Network:** 10.0.0.0/24 (physical)
 - **Public web access:** Cloudflare Tunnel to selected ClusterIP services
 - **LAN ingress:** Traefik via MetalLB VIP `10.0.0.119`
 - **Management plane:** ArgoCD, Longhorn, Vault, Harbor, Prometheus, Grafana, and Alertmanager should be treated as management-plane services in future segmentation
 
-No default-deny policy is shown as implemented. Any future segmentation must preserve Cloudflare Tunnel cross-namespace routes, Prometheus scraping, CoreDNS, Open WebUI-to-Ollama, and external-LAN PostgreSQL access.
+Celestial is the first verified default-deny pilot; it does not change the mostly default-allow cluster baseline. Any future segmentation must preserve Cloudflare Tunnel and Traefik routes where required, Prometheus scraping, CoreDNS, Open WebUI-to-Ollama, external-LAN PostgreSQL access, media/NFS traffic, Harbor, Longhorn, and other cross-namespace services.
 
 ### Storage Tiers
 

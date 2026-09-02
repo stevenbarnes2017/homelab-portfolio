@@ -152,10 +152,10 @@ NodePort services listen through Kubernetes nodes and can unintentionally increa
 
 ## SEC-005 - Insufficient Kubernetes East-West Segmentation
 
-**Status:** Open
+**Status:** Open / In Progress
 **Severity:** Medium
 
-K3s uses Flannel for the pod data plane and active kube-router NetworkPolicy enforcement. However, existing NetworkPolicies are limited primarily to ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy and remain default-allow for east-west traffic.
+K3s uses Flannel for the pod data plane and active kube-router NetworkPolicy enforcement. Policy coverage now includes ArgoCD, Immich Redis, and the successfully segmented Celestial pilot. Most namespaces still have no NetworkPolicy and remain default-allow for east-west traffic.
 
 Verified policy observations include:
 
@@ -169,6 +169,14 @@ Verified policy observations include:
 
 A compromised Internet-facing workload could use the mostly default-allow east-west network posture for lateral movement toward unrelated application, data, or management workloads. Active NetworkPolicy enforcement provides a control mechanism, but current policy coverage does not establish broad isolation.
 
+### Pilot Progress - Celestial
+
+Celestial is the first successfully segmented pilot workload. Its four policies establish default-deny ingress and egress with explicit allowances for the Cloudflare Tunnel production path, CoreDNS over TCP/UDP `53`, PostgreSQL at `10.0.0.129:5432`, and external HTTPS APIs over TCP `443`. The generic Internet HTTPS rule excludes private RFC1918 destinations unless explicitly permitted.
+
+The policies passed Kubernetes server-side dry run, synchronized automatically through ArgoCD, and were confirmed active in the `celestial` namespace. The public health endpoint remained healthy over the production Cloudflare Tunnel path, while a temporary pod in the unrelated `default` namespace resolved the Celestial service but could not connect directly. This demonstrates that kube-router NetworkPolicy enforcement works without breaking Celestial production traffic and reduces lateral-movement opportunities from that workload.
+
+The unused Traefik allowance for `celestial.lab.local` is a cleanup candidate. After confirming the LAN hostname is unnecessary, remove that allowance and consider removing the unused Celestial Ingress resource as a separate change.
+
 ### Design Constraints
 
 Future segmentation must preserve known required traffic:
@@ -178,14 +186,15 @@ Future segmentation must preserve known required traffic:
 - `cloudflared` in namespace `immich` to published application services across namespaces
 - Prometheus cross-namespace scraping
 - DNS access to CoreDNS in `kube-system`
+- Media and NFS traffic, Harbor, Longhorn, and other verified cross-namespace service dependencies
 
 ### Next Steps
 
-- Inventory required ingress and egress flows by namespace and workload.
-- Design namespace-level default-deny policies with explicit allowances for verified dependencies.
-- Validate policy behavior in stages before enforcement.
+- Continue one application or namespace at a time using discovery, dependency mapping, default-deny, explicit allow, and validation.
+- Avoid cluster-wide blanket default-deny policies that could disrupt DNS, Cloudflare Tunnel, Traefik, Prometheus, external PostgreSQL, media/NFS traffic, Harbor, Longhorn, or other cross-namespace services.
+- Remove the unused Celestial Traefik allowance after confirming `celestial.lab.local` is unnecessary.
 
-No default-deny policy or other infrastructure change has been implemented. This finding records discovery and design requirements only.
+The overall finding remains open because most namespaces are still unsegmented. The successful Celestial pilot does not establish cluster-wide east-west isolation.
 
 ## SEC-006 — Review Internet exposure controls for Hermes
 

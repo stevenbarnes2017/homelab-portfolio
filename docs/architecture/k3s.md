@@ -63,7 +63,7 @@ The verified Kubernetes network path is:
 Flannel data plane -> kube-router NetworkPolicy enforcement -> workload
 ```
 
-NetworkPolicy enforcement is active. Current coverage includes ArgoCD, Immich Redis, and the Celestial pilot, but most namespaces have no policy and therefore remain default-allow for east-west traffic. Public-facing application workloads and sensitive management workloads still share the cluster without broad namespace-level isolation.
+NetworkPolicy enforcement is active. Current coverage includes ArgoCD, Immich Redis, and the successful Celestial and Travel Planner pilots, but most namespaces have no policy and therefore remain default-allow for east-west traffic. Public-facing application workloads and sensitive management workloads still share the cluster without broad namespace-level isolation.
 
 Celestial is the first verified namespace-level segmentation pilot. It uses default-deny ingress and egress with explicit allowances for Cloudflare Tunnel ingress, CoreDNS, PostgreSQL at `10.0.0.129:5432`, and external HTTPS APIs. Generic Internet HTTPS access excludes RFC1918 destinations unless explicitly allowed. An unrelated pod was unable to connect directly, while this production path remained healthy:
 
@@ -71,7 +71,19 @@ Celestial is the first verified namespace-level segmentation pilot. It uses defa
 Vercel frontend -> celestial-api.sundaypickems.com -> Cloudflare -> Cloudflare Tunnel -> Celestial Service -> Celestial API pod
 ```
 
-The remaining Traefik allowance for the unused `celestial.lab.local` ingress is a cleanup candidate rather than a required production path. Broader segmentation must account for cross-boundary dependencies before enforcement:
+The remaining Traefik allowance for the unused `celestial.lab.local` ingress is a cleanup candidate rather than a required production path.
+
+Travel Planner is the second verified pilot. Its workload-specific default-deny policies explicitly allow `cloudflared` ingress to TCP `8000`, CoreDNS, PostgreSQL at `10.0.0.129:5432`, and public HTTPS while excluding RFC1918 networks from the general HTTPS rule. Its verified production path is:
+
+```text
+travel-mobile-app-lime.vercel.app -> travel-app.sundaypickems.com -> Cloudflare -> Cloudflare Tunnel / cloudflared -> travel-planner-api
+```
+
+The `travel.lab.local` Traefik route is not an actively used production frontend path, so its current policy allowance is a possible cleanup item. The initial omission of the real `cloudflared` dependency caused HTTP `502`, demonstrating that production ingress discovery must precede default-deny enforcement.
+
+The selected rollout strategy is workload-specific default-deny with explicit dependency allowlists, applied through Git and validated one workload at a time. Travel Planner also confirmed that ArgoCD will revert a manual cluster-only correction to the committed Git state; persistent changes must be committed to Git.
+
+Broader segmentation must account for cross-boundary dependencies before enforcement:
 
 - Open WebUI (`ai`) to Ollama at `10.0.0.41:11434`
 - Workloads using PostgreSQL at `10.0.0.129`

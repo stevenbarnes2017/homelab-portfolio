@@ -64,7 +64,7 @@ Service ClusterIP addresses use:
 
 K3s kube-router NetworkPolicy enforcement is active. `KUBE-ROUTER-*` and `KUBE-POD-FW-*` iptables chains were verified.
 
-Current policy coverage includes ArgoCD, Immich Redis, and the Celestial segmentation pilot. Most namespaces still have no NetworkPolicy and therefore remain default-allow for east-west traffic.
+Current policy coverage includes ArgoCD, Immich Redis, and the Celestial and Travel Planner segmentation pilots. Most namespaces still have no NetworkPolicy and therefore remain default-allow for east-west traffic.
 
 Verified policy observations:
 
@@ -73,7 +73,7 @@ Verified policy observations:
 - Several ArgoCD policies use `namespaceSelector: {}`, allowing ingress from any namespace.
 - The policy selecting `argocd-server` contains `ingress: - {}`, which is effectively unrestricted ingress to the selected pod.
 
-No cluster-wide blanket default-deny policy has been implemented. Celestial is the first workload with a verified namespace-level default-deny and explicit-allow model.
+No cluster-wide blanket default-deny policy has been implemented. Celestial and Travel Planner now have verified workload-specific default-deny and explicit-allow models.
 
 ### Celestial NetworkPolicy Pilot
 
@@ -115,6 +115,42 @@ Validation performed:
 3. `kubectl get networkpolicy -n celestial` confirmed all four policies were active.
 4. `curl -i https://celestial-api.sundaypickems.com/health` returned HTTP `200` with `{"engine":"Celestial Engine API v1.0","global_free_beta":true,"status":"healthy"}`.
 5. In the negative east-west test, a temporary curl pod in `default` resolved `celestial-api.celestial.svc.cluster.local` to `10.43.234.199`, but its direct connection failed with `Connection refused`; the legitimate Cloudflare path remained operational.
+
+### Travel Planner NetworkPolicy Pilot
+
+The second successfully segmented pilot is the `travel-planner-api` workload in namespace `travel-planner`, selected by `app=travel-planner-api`. The `travel-planner-api` Service maps port `80` to pod port `8000`; the observed backend endpoint was `10.42.4.157:8000`.
+
+Four NetworkPolicies are active:
+
+- `travel-planner-default-deny-ingress`
+- `travel-planner-allow-ingress`
+- `travel-planner-default-deny-egress`
+- `travel-planner-allow-required-egress`
+
+Ingress is default-deny. `cloudflared` in namespace `immich`, selected by `app=cloudflared`, is explicitly allowed to TCP `8000`. Traefik in `kube-system` is also currently allowed to TCP `8000`, although `travel.lab.local` is not an actively used frontend path; this allowance is a possible cleanup item rather than a verified production requirement. Arbitrary east-west traffic is not allowed.
+
+Egress is default-deny with explicit allowances for CoreDNS over TCP and UDP `53`, PostgreSQL at `10.0.0.129:5432`, and public HTTPS over TCP `443`. The general HTTPS rule excludes RFC1918 networks.
+
+The verified production request path is:
+
+```text
+https://travel-mobile-app-lime.vercel.app/
+-> Vercel frontend
+-> travel-app.sundaypickems.com
+-> Cloudflare
+-> Cloudflare Tunnel / cloudflared
+-> travel-planner-api Service
+-> travel-planner-api pod
+```
+
+Validation performed:
+
+1. `kubectl apply --dry-run=server` successfully validated all four policies.
+2. ArgoCD deployed and reconciled the policies from the GitOps repository.
+3. `https://travel-app.sundaypickems.com/health` returned HTTP/2 `200` with `{"status":"ok"}` after the correct `cloudflared` allowance was committed.
+4. An arbitrary pod in namespace `default` resolved the service DNS and ClusterIP, but its TCP connection was refused. This demonstrated that DNS remained available while unauthorized application connectivity was blocked.
+
+During troubleshooting, a corrected NetworkPolicy was applied manually with `kubectl`, but ArgoCD restored the older version because Git remained the source of truth. After commit `047e80f` (`fix travel planner cloudflare ingress`) added the corrected `cloudflared` rule to Git, ArgoCD reconciled the intended configuration and the public endpoint returned `200`. Persistent GitOps changes must therefore be committed to Git rather than applied only with `kubectl`.
 
 ### Segmentation Dependencies
 

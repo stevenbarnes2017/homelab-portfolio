@@ -14,6 +14,7 @@ graph TB
                 FLANNEL[Flannel<br/>Pod Data Plane]
                 KUBEROUTER[kube-router<br/>NetworkPolicy Enforcement]
                 DEFAULTALLOW[Mostly Default-Allow<br/>Current State]
+                SEGMENTEDPILOTS[Celestial + Travel Planner<br/>Default-Deny Pilots]
             end
             LB[k3s-lb-01<br/>10.0.0.119 MetalLB VIP<br/>VMID 119]
             CLOUDFLARED[cloudflared x2<br/>namespace: immich]
@@ -38,6 +39,7 @@ graph TB
     WK1 & WK2 & WK3 --> FLANNEL
     FLANNEL --> KUBEROUTER
     KUBEROUTER --> DEFAULTALLOW
+    KUBEROUTER --> SEGMENTEDPILOTS
     LB --> PIHOLE
     INTERNET --> CF
     CF --> CLOUDFLARED
@@ -113,7 +115,7 @@ All services accessible through Traefik ingress at 10.0.0.119:
 Flannel data plane -> kube-router NetworkPolicy enforcement -> mostly default-allow namespaces
 ```
 
-NetworkPolicy enforcement is active, but existing policies are concentrated primarily in ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy. No default-deny posture has been implemented.
+NetworkPolicy enforcement is active. Celestial and Travel Planner are successful workload-specific default-deny pilots with explicit dependency allowlists. Most namespaces still have no NetworkPolicy and remain default-allow, so cluster-wide rollout remains in progress.
 
 Required flows that must be accounted for in future segmentation include Cloudflare Tunnel access across namespaces, Prometheus scraping, CoreDNS, Open WebUI to `10.0.0.41:11434`, and Kubernetes workloads to PostgreSQL at `10.0.0.129`.
 

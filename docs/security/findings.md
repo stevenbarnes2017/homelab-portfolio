@@ -155,7 +155,7 @@ NodePort services listen through Kubernetes nodes and can unintentionally increa
 **Status:** Open / In Progress
 **Severity:** Medium
 
-K3s uses Flannel for the pod data plane and active kube-router NetworkPolicy enforcement. Policy coverage now includes ArgoCD, Immich Redis, and the successfully segmented Celestial pilot. Most namespaces still have no NetworkPolicy and remain default-allow for east-west traffic.
+K3s uses Flannel for the pod data plane and active kube-router NetworkPolicy enforcement. Policy coverage now includes ArgoCD, Immich Redis, and the successfully segmented Celestial and Travel Planner pilots. Most namespaces still have no NetworkPolicy and remain default-allow for east-west traffic.
 
 Verified policy observations include:
 
@@ -177,6 +177,22 @@ The policies passed Kubernetes server-side dry run, synchronized automatically t
 
 The unused Traefik allowance for `celestial.lab.local` is a cleanup candidate. After confirming the LAN hostname is unnecessary, remove that allowance and consider removing the unused Celestial Ingress resource as a separate change.
 
+### Pilot Progress - Travel Planner
+
+Travel Planner is the second successfully segmented pilot. The `travel-planner-api` workload in namespace `travel-planner` now has default-deny ingress and egress with explicit allowances for `cloudflared` ingress to TCP `8000`, CoreDNS, PostgreSQL at `10.0.0.129:5432`, and public HTTPS. The HTTPS rule excludes RFC1918 destinations. Traefik is also currently allowed to TCP `8000`, but `travel.lab.local` is not an active production frontend path and that allowance is a possible cleanup item.
+
+The four policies passed server-side dry run and were deployed through ArgoCD. The public health endpoint returned HTTP/2 `200` after the correct `cloudflared` allowance was committed, while an arbitrary pod in `default` could resolve the service but could not establish a TCP connection. This preserves DNS while blocking unauthorized east-west application access.
+
+The pilot also verified GitOps reconciliation. A manual `kubectl` correction was reverted to the older Git state by ArgoCD. Commit `047e80f` (`fix travel planner cloudflare ingress`) then recorded the correction in Git, after which ArgoCD reconciled it and restored the public endpoint. Persistent changes must be made in Git, not only in the cluster.
+
+Before enforcing default-deny ingress, identify the real production ingress path. Travel Planner is served from Vercel through Cloudflare Tunnel, not through the unused `travel.lab.local` Traefik route. Omitting the `cloudflared` dependency initially caused HTTP `502` until the policy was corrected.
+
+### Pilot Results
+
+1. Celestial - successful.
+2. Travel Planner - successful.
+3. Cluster-wide rollout - still in progress.
+
 ### Design Constraints
 
 Future segmentation must preserve known required traffic:
@@ -193,8 +209,9 @@ Future segmentation must preserve known required traffic:
 - Continue one application or namespace at a time using discovery, dependency mapping, default-deny, explicit allow, and validation.
 - Avoid cluster-wide blanket default-deny policies that could disrupt DNS, Cloudflare Tunnel, Traefik, Prometheus, external PostgreSQL, media/NFS traffic, Harbor, Longhorn, or other cross-namespace services.
 - Remove the unused Celestial Traefik allowance after confirming `celestial.lab.local` is unnecessary.
+- Review the Travel Planner Traefik allowance and remove it after confirming `travel.lab.local` remains unnecessary.
 
-The overall finding remains open because most namespaces are still unsegmented. The successful Celestial pilot does not establish cluster-wide east-west isolation.
+The overall finding remains open because most namespaces are still unsegmented. The successful workload pilots do not establish cluster-wide east-west isolation.
 
 ## SEC-006 — Review Internet exposure controls for Hermes
 

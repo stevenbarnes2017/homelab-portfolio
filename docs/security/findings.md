@@ -123,11 +123,14 @@ Globally scoped IPv6 addressing alone does not prove that these systems are reac
 
 ## SEC-004 - Legacy Kubernetes NodePort
 
-**Status:** Open  
+**Status:** Resolved  
 **Severity:** Low / Review Required  
 **Discovered:** 2026-08-23
+**Resolved:** 2026-08-23
 
 The Kubernetes service `default/nginx-test` exposes:
+
+Workload was obsolete and removed
 
 `TCP 31733`
 

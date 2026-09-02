@@ -55,6 +55,24 @@ Internet -> Cloudflare -> Cloudflare Tunnel -> ClusterIP service -> application 
 
 `cloudflared` runs as a two-replica Deployment in the `immich` namespace. Public route details are maintained in `docs/security/cloudflare-ingress.md`.
 
+### Pod Networking and Segmentation
+
+The verified Kubernetes network path is:
+
+```text
+Flannel data plane -> kube-router NetworkPolicy enforcement -> workload
+```
+
+NetworkPolicy enforcement is active, but current policy coverage is limited primarily to ArgoCD and Immich Redis. Most namespaces have no policy and therefore remain default-allow for east-west traffic. Public-facing application workloads and sensitive management workloads currently share the cluster without meaningful namespace-level isolation.
+
+This is the discovered current state, not an implemented default-deny design. Future segmentation must account for cross-boundary dependencies before enforcement:
+
+- Open WebUI (`ai`) to Ollama at `10.0.0.41:11434`
+- Workloads using PostgreSQL at `10.0.0.129`
+- `cloudflared` (`immich`) to published services across namespaces
+- Prometheus cross-namespace scraping
+- DNS to CoreDNS in `kube-system`
+
 ---
 
 ### DNS
@@ -206,7 +224,7 @@ Internet -> Cloudflare -> Cloudflare Tunnel -> ClusterIP service -> application 
 
 - No automated backup strategy (Longhorn volumes)
 - No external monitoring of cluster
-- Limited network segmentation
+- NetworkPolicy enforcement is active, but most namespaces remain default-allow
 - Vault usage could be expanded (not fully standardized)
 
 ---

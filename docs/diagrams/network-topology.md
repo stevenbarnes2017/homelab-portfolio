@@ -11,6 +11,9 @@ graph TB
                 WK1[k3s-wk-01<br/>10.0.0.123<br/>VMID 109]
                 WK2[k3s-wk-02<br/>10.0.0.124<br/>VMID 111]
                 WK3[k3s-wk-03<br/>10.0.0.125<br/>VMID 112]
+                FLANNEL[Flannel<br/>Pod Data Plane]
+                KUBEROUTER[kube-router<br/>NetworkPolicy Enforcement]
+                DEFAULTALLOW[Mostly Default-Allow<br/>Current State]
             end
             LB[k3s-lb-01<br/>10.0.0.119 MetalLB VIP<br/>VMID 119]
             CLOUDFLARED[cloudflared x2<br/>namespace: immich]
@@ -32,6 +35,9 @@ graph TB
     %% Connections
     CP1 & CP2 & CP3 --> LB
     WK1 & WK2 & WK3 --> LB
+    WK1 & WK2 & WK3 --> FLANNEL
+    FLANNEL --> KUBEROUTER
+    KUBEROUTER --> DEFAULTALLOW
     LB --> PIHOLE
     INTERNET --> CF
     CF --> CLOUDFLARED
@@ -92,14 +98,24 @@ All services accessible through Traefik ingress at 10.0.0.119:
 
 **CIDR:** 10.42.0.0/16 (k3s default)
 
-| Node | Pod Network |
-|------|-------------|
-| k3s-cp-01 | 10.42.0.x |
-| k3s-cp-02 | 10.42.2.x |
-| k3s-cp-03 | 10.42.1.x |
-| k3s-wk-01 | 10.42.5.x |
-| k3s-wk-02 | 10.42.3.x |
-| k3s-wk-03 | 10.42.4.x |
+| Node | Pod CIDR |
+|------|----------|
+| k3s-cp-01 | `10.42.0.0/24` |
+| k3s-cp-03 | `10.42.1.0/24` |
+| k3s-cp-02 | `10.42.2.0/24` |
+| k3s-wk-02 | `10.42.3.0/24` |
+| k3s-wk-03 | `10.42.4.0/24` |
+| k3s-wk-01 | `10.42.5.0/24` |
+
+### Current Segmentation State
+
+```text
+Flannel data plane -> kube-router NetworkPolicy enforcement -> mostly default-allow namespaces
+```
+
+NetworkPolicy enforcement is active, but existing policies are concentrated primarily in ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy. No default-deny posture has been implemented.
+
+Required flows that must be accounted for in future segmentation include Cloudflare Tunnel access across namespaces, Prometheus scraping, CoreDNS, Open WebUI to `10.0.0.41:11434`, and Kubernetes workloads to PostgreSQL at `10.0.0.129`.
 
 ### Service Network (Internal)
 

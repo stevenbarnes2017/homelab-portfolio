@@ -150,14 +150,42 @@ NodePort services listen through Kubernetes nodes and can unintentionally increa
 
 ---
 
-## SEC-005 — Cloudflare tunnel pods are not network-isolated.
+## SEC-005 - Insufficient Kubernetes East-West Segmentation
 
 **Status:** Open
-**Severity:** Security Hardening Observation
+**Severity:** Medium
 
-cloudflared intentionally provides Internet-origin access to six applications, but the pods are not currently restricted to only those destination services. A compromise of a tunnel pod could therefore provide broader east/west access inside the cluster.
+K3s uses Flannel for the pod data plane and active kube-router NetworkPolicy enforcement. However, existing NetworkPolicies are limited primarily to ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy and remain default-allow for east-west traffic.
 
-The Cloudflare tunnel pods do not appear over-privileged in Kubernetes RBAC, but they are not network-isolated and can likely initiate connections broadly within the cluster.
+Verified policy observations include:
+
+- Immich Redis permits ingress on TCP `6379` without a source selector and has unrestricted egress.
+- ArgoCD Redis is more tightly restricted to specific ArgoCD components.
+- Several ArgoCD policies use `namespaceSelector: {}`, allowing ingress from any namespace.
+- `argocd-server` has `ingress: - {}`, effectively permitting unrestricted ingress to the selected pod.
+- Internet-facing workloads, including `cloudflared` and the applications it publishes, share the cluster with unrelated workloads and sensitive management services without meaningful namespace-level isolation.
+
+### Risk
+
+A compromised Internet-facing workload could use the mostly default-allow east-west network posture for lateral movement toward unrelated application, data, or management workloads. Active NetworkPolicy enforcement provides a control mechanism, but current policy coverage does not establish broad isolation.
+
+### Design Constraints
+
+Future segmentation must preserve known required traffic:
+
+- Open WebUI in namespace `ai` to Ollama at `10.0.0.41:11434`
+- Kubernetes workloads to PostgreSQL dependencies at `10.0.0.129`
+- `cloudflared` in namespace `immich` to published application services across namespaces
+- Prometheus cross-namespace scraping
+- DNS access to CoreDNS in `kube-system`
+
+### Next Steps
+
+- Inventory required ingress and egress flows by namespace and workload.
+- Design namespace-level default-deny policies with explicit allowances for verified dependencies.
+- Validate policy behavior in stages before enforcement.
+
+No default-deny policy or other infrastructure change has been implemented. This finding records discovery and design requirements only.
 
 ## SEC-006 — Review Internet exposure controls for Hermes
 

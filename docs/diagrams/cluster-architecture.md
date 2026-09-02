@@ -24,6 +24,12 @@ graph TB
         WK3[k3s-wk-03<br/>4GB RAM, 2 vCPU<br/>88.5GB disk]
     end
 
+    subgraph "Pod Network and Policy"
+        FLANNEL[Flannel Data Plane<br/>10.42.0.0/16]
+        KUBEROUTER[kube-router<br/>NetworkPolicy Enforcement]
+        DEFAULTALLOW[Current State<br/>Mostly Default-Allow]
+    end
+
     subgraph "Storage Layer"
         LONGHORN[Longhorn Distributed Storage<br/>540GB managed volumes]
         EXTERNAL[(Immich External Storage<br/>916GB dedicated disk)]
@@ -82,6 +88,9 @@ graph TB
     ARGOCD --> CP3
     PROM --> WK1
     GRAFANA --> CP3
+    WK1 & WK2 & WK3 --> FLANNEL
+    FLANNEL --> KUBEROUTER
+    KUBEROUTER --> DEFAULTALLOW
 
     %% Storage
     WK1 & WK2 & WK3 --> LONGHORN
@@ -115,6 +124,7 @@ graph TB
     classDef application fill:#e8eaf6,stroke:#1a237e,stroke-width:2px
     classDef external fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     classDef ingress fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef network fill:#ede7f6,stroke:#4527a0,stroke-width:2px
 
     class CP1,CP2,CP3,ETCD controlPlane
     class WK1,WK2,WK3 worker
@@ -124,6 +134,7 @@ graph TB
     class FOOTBALL,IMMICH,SCHEDULER,OPENWEBUI application
     class DB,ANSIBLE,OLLAMA external
     class METALLB,TRAEFIK,INTERNET,CLOUDFLARE,CLOUDFLARED,PUBLICSVC ingress
+    class FLANNEL,KUBEROUTER,DEFAULTALLOW network
 ```
 
 ## Architecture Highlights
@@ -195,12 +206,16 @@ graph TB
 
 ### Network Isolation
 
-- **Pod Network:** 10.42.0.0/16 (CNI managed)
+- **Pod data plane:** Flannel, using node `/24` pod CIDRs within `10.42.0.0/16`
+- **Policy enforcement:** kube-router is active; verified iptables chains include `KUBE-ROUTER-*` and `KUBE-POD-FW-*`
+- **Current policy state:** mostly default-allow because most namespaces have no NetworkPolicy
 - **Service Network:** 10.43.0.0/16 (ClusterIP)
 - **Node Network:** 10.0.0.0/24 (physical)
 - **Public web access:** Cloudflare Tunnel to selected ClusterIP services
 - **LAN ingress:** Traefik via MetalLB VIP `10.0.0.119`
 - **Management plane:** ArgoCD, Longhorn, Vault, Harbor, Prometheus, Grafana, and Alertmanager should be treated as management-plane services in future segmentation
+
+No default-deny policy is shown as implemented. Any future segmentation must preserve Cloudflare Tunnel cross-namespace routes, Prometheus scraping, CoreDNS, Open WebUI-to-Ollama, and external-LAN PostgreSQL access.
 
 ### Storage Tiers
 

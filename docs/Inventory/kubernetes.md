@@ -38,20 +38,52 @@ All Kubernetes nodes were verified Ready on 2026-08-23.
 
 ## Pod Networking
 
-K3s uses Flannel networking.
+K3s uses Flannel networking. The `flannel.1` and `cni0` interfaces were verified on `k3s-wk-01`.
 
 Observed pod-network interfaces include:
 
 - `flannel.1`
 - `cni0`
 
-Observed pod CIDRs include networks within:
+Verified node pod CIDRs:
 
-`10.42.0.0/16`
+| Node | Pod CIDR |
+|---|---|
+| k3s-cp-01 | `10.42.0.0/24` |
+| k3s-cp-03 | `10.42.1.0/24` |
+| k3s-cp-02 | `10.42.2.0/24` |
+| k3s-wk-02 | `10.42.3.0/24` |
+| k3s-wk-03 | `10.42.4.0/24` |
+| k3s-wk-01 | `10.42.5.0/24` |
 
 Service ClusterIP addresses use:
 
 `10.43.0.0/16`
+
+### NetworkPolicy Enforcement and Current Coverage
+
+K3s kube-router NetworkPolicy enforcement is active. `KUBE-ROUTER-*` and `KUBE-POD-FW-*` iptables chains were verified.
+
+Current policy coverage is limited primarily to ArgoCD and Immich Redis. Most namespaces have no NetworkPolicy and therefore remain default-allow for east-west traffic.
+
+Verified policy observations:
+
+- Immich Redis permits ingress on TCP `6379` without a source selector, so any reachable source may connect on that port. Its egress is unrestricted.
+- ArgoCD Redis is more tightly restricted to specific ArgoCD components.
+- Several ArgoCD policies use `namespaceSelector: {}`, allowing ingress from any namespace.
+- The policy selecting `argocd-server` contains `ingress: - {}`, which is effectively unrestricted ingress to the selected pod.
+
+No cluster-wide or namespace-wide default-deny policy has been implemented. This inventory records discovery state only.
+
+### Segmentation Dependencies
+
+Any future default-deny or egress design must preserve required flows, including:
+
+- Open WebUI in namespace `ai` to Ollama at `10.0.0.41:11434`
+- Kubernetes workloads to external-LAN PostgreSQL dependencies at `10.0.0.129`
+- `cloudflared` in namespace `immich` to published application services across namespaces
+- Prometheus cross-namespace scraping
+- DNS access to CoreDNS in `kube-system`
 
 ---
 
